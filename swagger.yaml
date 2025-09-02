@@ -1,0 +1,300 @@
+openapi: 3.0.0
+info:
+  title: API Интернет-магазина
+  description: API для работы с каталогом товаров и корзиной покупок
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+    description: Production server
+  - url: https://sandbox-api.example.com
+    description: Sandbox server
+
+tags:
+  - name: Catalog
+    description: Операции с каталогом товаров
+  - name: Cart
+    description: Операции с корзиной покупок
+
+paths:
+  /catalog:
+    get:
+      tags:
+        - Catalog
+      summary: Получить список товаров (витрину)
+      description: Возвращает paginated список товаров с краткой информацией
+      parameters:
+        - name: page
+          in: query
+          description: Номер страницы
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Количество товаров на странице
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: categoryId
+          in: query
+          description: ID категории для фильтрации
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogResponse'
+        '400':
+          description: Неверные параметры запроса
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /catalog/{productId}:
+    get:
+      tags:
+        - Catalog
+      summary: Получить детальную информацию о товаре
+      description: Возвращает полную информацию о конкретном товаре
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: UUID товара
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          description: Товар не найден
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /cart/items:
+    post:
+      tags:
+        - Cart
+      summary: Добавить товар в корзину
+      description: Добавляет указанное количество товара в корзину пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToCartRequest'
+      responses:
+        '201':
+          description: Товар успешно добавлен в корзину
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+        '400':
+          description: Неверные данные запроса
+        '404':
+          description: Товар не найден
+        '500':
+          description: Внутренняя ошибка сервера
+
+components:
+  schemas:
+    ProductShort:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "d5e63e36-9972-4e5f-b9a1-929ee825001e"
+        name:
+          type: string
+          example: "Смартфон AwesomePhone X"
+        price:
+          type: number
+          format: float
+          example: 59999.00
+        oldPrice:
+          type: number
+          format: float
+          nullable: true
+          example: 64999.00
+        shortDescription:
+          type: string
+          example: "Флагман с потрясающей камерой и экраном."
+        thumbnailUrl:
+          type: string
+          format: uri
+          example: "/images/products/phone_x_thumb.jpg"
+        inStock:
+          type: boolean
+          example: true
+        category:
+          type: string
+          example: "Смартфоны"
+
+    CatalogResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductShort'
+        totalCount:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+
+    ProductDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "d5e63e36-9972-4e5f-b9a1-929ee825001e"
+        name:
+          type: string
+          example: "Смартфон AwesomePhone X"
+        price:
+          type: number
+          format: float
+          example: 59999.00
+        oldPrice:
+          type: number
+          format: float
+          nullable: true
+          example: 64999.00
+        fullDescription:
+          type: string
+          example: "Мощный флагманский смартфон с процессором последнего поколения..."
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ["/images/products/phone_x_1.jpg", "/images/products/phone_x_2.jpg"]
+        inStock:
+          type: boolean
+          example: true
+        specifications:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            "Диагональ экрана": "6.7 дюйма"
+            "Разрешение экрана": "2796x1290"
+            "Оперативная память": "8 ГБ"
+        category:
+          type: string
+          example: "Смартфоны"
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+          example: 4.8
+
+    AddToCartRequest:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+          format: uuid
+          example: "d5e63e36-9972-4e5f-b9a1-929ee825001e"
+        quantity:
+          type: integer
+          minimum: 1
+          example: 1
+
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "item_abc123"
+        productId:
+          type: string
+          format: uuid
+          example: "d5e63e36-9972-4e5f-b9a1-929ee825001e"
+        productName:
+          type: string
+          example: "Смартфон AwesomePhone X"
+        quantity:
+          type: integer
+          example: 1
+        unitPrice:
+          type: number
+          format: float
+          example: 59999.00
+        totalPrice:
+          type: number
+          format: float
+          example: 59999.00
+        addedAt:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00Z"
+
+  responses:
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Product not found"
+              code:
+                type: string
+                example: "NOT_FOUND"
+
+    BadRequest:
+      description: Неверные параметры запроса
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Invalid quantity"
+              code:
+                type: string
+                example: "VALIDATION_ERROR"
+
+security:
+  - bearerAuth: []
+  - sessionAuth: []
+
+securitySchemes:
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+  sessionAuth:
+    type: apiKey
+    in: cookie
+    name: sessionId
